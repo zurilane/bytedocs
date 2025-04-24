@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ByteDocs - Your Ultimate Online Editor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@2.6.2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@1.9.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/quote@2.4.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/checklist@1.4.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/delimiter@1.3.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/paragraph@2.8.0"></script>
+  <style>
+    .dark {
+      background-color: #1a202c;
+      color: white;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 font-inter">
+  <div id="start-screen" class="min-h-screen flex flex-col justify-center items-center space-y-8">
+    <h1 class="text-5xl font-extrabold text-blue-600">ByteDocs <span class="text-sm bg-yellow-300 text-black px-2 py-1 rounded">BETA</span></h1>
+    <div class="space-x-4">
+      <button onclick="startEditor()" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600">Blank Document</button>
+      <button onclick="loadSavedDoc()" class="bg-indigo-500 text-white px-6 py-3 rounded-lg hover:bg-indigo-600">My Documents</button>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+      <button onclick="loadTemplate('resume')" class="bg-white shadow p-4 rounded-lg hover:shadow-md text-left">
+        <h2 class="font-semibold text-xl">Resume Template</h2>
+        <p class="text-gray-500">Pre-built resume layout with sections</p>
+      </button>
+      <button onclick="loadTemplate('report')" class="bg-white shadow p-4 rounded-lg hover:shadow-md text-left">
+        <h2 class="font-semibold text-xl">Report Template</h2>
+        <p class="text-gray-500">Ready for academic or work reports</p>
+      </button>
+      <button onclick="loadTemplate('notes')" class="bg-white shadow p-4 rounded-lg hover:shadow-md text-left">
+        <h2 class="font-semibold text-xl">Notes Template</h2>
+        <p class="text-gray-500">Organized bullet points</p>
+      </button>
+    </div>
+  </div>
+
+  <div id="editor-screen" class="hidden">
+    <header class="bg-white shadow-md p-4 flex justify-between items-center">
+      <h1 class="text-3xl font-extrabold text-blue-600">ByteDocs <span class="text-sm bg-yellow-300 text-black px-2 py-1 rounded">BETA</span></h1>
+      <div class="space-x-2">
+        <button id="newDocBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">New Document</button>
+        <button id="viewDocsBtn" class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600">View Saved Docs</button>
+        <button id="returnHomeBtn" class="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500">Return to Home</button>
+        <button id="themeToggle" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800">Toggle Theme</button>
+      </div>
+    </header>
+
+    <main class="p-6 max-w-5xl mx-auto">
+      <div id="editorjs" class="bg-white p-4 rounded-xl shadow-lg min-h-[400px] dark:bg-gray-800 dark:text-white"></div>
+      <div class="mt-6 flex justify-end space-x-4">
+        <button id="saveBtn" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600">Save</button>
+        <button id="pdfBtn" class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600">Export PDF</button>
+      </div>
+    </main>
+
+    <footer class="text-center text-gray-500 mt-12 py-4 dark:text-gray-400">
+      &copy; <span id="year"></span> ByteBerlin. All rights reserved.
+    </footer>
+  </div>
+
+  <script>
+    let editor;
+    const SHARE_BASE = window.location.origin + window.location.pathname + "?doc=";
+
+    function encodeData(data) {
+      return encodeURIComponent(btoa(JSON.stringify(data)));
+    }
+
+    function decodeData(encoded) {
+      return JSON.parse(atob(decodeURIComponent(encoded)));
+    }
+
+    async function startEditor(doc = null) {
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('editor-screen').classList.remove('hidden');
+      if (!editor) await initializeEditor();
+      if (doc) editor.render(doc);
+    }
+
+    function loadSavedDoc() {
+      const saved = localStorage.getItem('savedDoc');
+      if (saved) startEditor(JSON.parse(saved));
+      else alert('No saved documents found.');
+    }
+
+    function loadTemplate(type) {
+      const templates = {
+        resume: {
+          blocks: [
+            { type: "header", data: { text: "John Doe", level: 2 } },
+            { type: "paragraph", data: { text: "Professional Summary: A brief overview of your experience, skills, and goals." } },
+            { type: "header", data: { text: "Experience", level: 3 } },
+            { type: "list", data: { style: "unordered", items: ["Job Title - Company (Year-Year)", "Job Title - Company (Year-Year)"] } },
+            { type: "header", data: { text: "Education", level: 3 } },
+            { type: "list", data: { style: "unordered", items: ["Degree - School (Year)", "Certification - Institution (Year)"] } }
+          ]
+        },
+        report: {
+          blocks: [
+            { type: "header", data: { text: "Report Title", level: 1 } },
+            { type: "paragraph", data: { text: "Introduction: Explain the purpose of this report." } },
+            { type: "paragraph", data: { text: "Findings: Detail the research or observations made." } },
+            { type: "paragraph", data: { text: "Conclusion: Summarize the implications or next steps." } }
+          ]
+        },
+        notes: {
+          blocks: [
+            { type: "header", data: { text: "Notes", level: 2 } },
+            { type: "list", data: { style: "unordered", items: ["Main idea 1", "Main idea 2", "Main idea 3"] } }
+          ]
+        }
+      };
+      startEditor(templates[type]);
+    }
+
+    async function initializeEditor() {
+      editor = new EditorJS({
+        holder: 'editorjs',
+        tools: {
+          header: Header,
+          list: List,
+          quote: Quote,
+          checklist: Checklist,
+          delimiter: Delimiter,
+          paragraph: Paragraph
+        },
+        placeholder: 'Start typing your document here...',
+        autofocus: true,
+        onReady: () => console.log('Editor.js is ready'),
+        onChange: () => console.log('Content changed')
+      });
+
+      document.getElementById('newDocBtn').addEventListener('click', () => {
+        editor.clear();
+      });
+
+      document.getElementById('saveBtn').addEventListener('click', () => {
+        editor.save().then((outputData) => {
+          localStorage.setItem('savedDoc', JSON.stringify(outputData));
+          alert('Document saved locally.');
+        });
+      });
+
+      document.getElementById('pdfBtn').addEventListener('click', () => {
+        editor.save().then(data => {
+          const printWindow = window.open('', '_blank');
+          let html = '<html><head><title>Export PDF</title></head><body>';
+          data.blocks.forEach(block => {
+            if (block.type === 'paragraph') html += `<p>${block.data.text}</p>`;
+            if (block.type === 'header') html += `<h${block.data.level}>${block.data.text}</h${block.data.level}>`;
+            if (block.type === 'list') html += `<ul>${block.data.items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+          });
+          html += '</body></html>';
+          printWindow.document.write(html);
+          printWindow.document.close();
+          printWindow.focus();
+          printWindow.print();
+        });
+      });
+
+      document.getElementById('returnHomeBtn').addEventListener('click', () => {
+        document.getElementById('editor-screen').classList.add('hidden');
+        document.getElementById('start-screen').classList.remove('hidden');
+      });
+
+      document.getElementById('viewDocsBtn').addEventListener('click', loadSavedDoc);
+
+      document.getElementById('themeToggle').addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        document.body.classList.toggle('dark');
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById("year").textContent = new Date().getFullYear();
+      const params = new URLSearchParams(window.location.search);
+      const doc = params.get('doc');
+      if (doc) startEditor(decodeData(doc));
+    });
+  </script>
+</body>
+
+</html>
